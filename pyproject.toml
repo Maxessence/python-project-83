@@ -10,3 +10,8 @@ dependencies = [
     "gunicorn>=25.1.0",
     "python-dotenv>=1.2.2",
 ]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.7",
+]
