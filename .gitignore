@@ -1,0 +1,22 @@
+.venv/
+
+
+__pycache__/
+*.pyc
+*.pyo
+
+
+.env
+.env.local
+
+
+.vscode/
+.idea/
+.DS_Store
+
+
+.dockerignore  # <-- НЕТ! Это не нужно добавлять
+
+
+*.log
+.python-version
