@@ -8,6 +8,7 @@
         <tr>
             <th>ID</th>
             <th>Имя</th>
+            <th>Последняя проверка</th>
             <th>Дата создания</th>
         </tr>
     </thead>
@@ -20,6 +21,7 @@
                     {{ url.name }}
                 </a>
             </td>
+            <td>{{ url.last_check_at or '' }}</td>
             <td>{{ url.created_at }}</td>
         </tr>
         {% endfor %}

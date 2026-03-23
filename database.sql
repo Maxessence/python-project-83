@@ -1,5 +1,17 @@
+-- Таблица для хранения URL-адресов
 CREATE TABLE IF NOT EXISTS urls (
     id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     name VARCHAR(255) NOT NULL UNIQUE,
+    created_at DATE NOT NULL DEFAULT CURRENT_DATE
+);
+
+-- Таблица для хранения проверок
+CREATE TABLE IF NOT EXISTS url_checks (
+    id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    url_id BIGINT REFERENCES urls(id) ON DELETE CASCADE,
+    status_code INTEGER,
+    h1 VARCHAR(255),
+    title VARCHAR(255),
+    description VARCHAR(255),
     created_at DATE NOT NULL DEFAULT CURRENT_DATE
 );

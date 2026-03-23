@@ -20,5 +20,38 @@
     </tbody>
 </table>
 
-<p class="text-muted mt-4">Функция проверки страницы будет добавлена позже</p>
+<form method="post" action="{{ url_for('checks_create', id=url.id) }}" class="mb-4">
+    <button type="submit" class="btn btn-primary">Запустить проверку</button>
+</form>
+
+<h2>Проверки</h2>
+
+<table class="table table-bordered" data-test="checks">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Код ответа</th>
+            <th>h1</th>
+            <th>title</th>
+            <th>description</th>
+            <th>Дата создания</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for check in checks %}
+        <tr>
+            <td>{{ check.id }}</td>
+            <td>{{ check.status_code or '' }}</td>
+            <td>{{ (check.h1 or '')[:200] }}{% if (check.h1 or '')|length > 200 %}...{% endif %}</td>
+            <td>{{ (check.title or '')[:200] }}{% if (check.title or '')|length > 200 %}...{% endif %}</td>
+            <td>{{ (check.description or '')[:200] }}{% if (check.description or '')|length > 200 %}...{% endif %}</td>
+            <td>{{ check.created_at }}</td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="6" class="text-center">Проверок пока нет</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
 {% endblock %}

@@ -88,14 +88,20 @@ def urls_create():
 
 @app.route("/urls")
 def urls_index():
-    """Список всех добавленных URL"""
+    """Список всех добавленных URL с датой последней проверки"""
     with get_connection() as conn:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute(
                 """
-                SELECT id, name, created_at
-                FROM urls
-                ORDER BY id DESC
+                SELECT 
+                    u.id, 
+                    u.name, 
+                    u.created_at,
+                    MAX(uc.created_at) as last_check_at
+                FROM urls u
+                LEFT JOIN url_checks uc ON u.id = uc.url_id
+                GROUP BY u.id
+                ORDER BY u.id DESC
                 """
             )
             urls = cur.fetchall()
@@ -104,13 +110,59 @@ def urls_index():
 
 @app.route("/urls/<int:id>")
 def urls_show(id):
-    """Страница конкретного URL"""
+    """Страница конкретного URL со списком проверок"""
     with get_connection() as conn:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            # Получаем информацию о сайте
             cur.execute("SELECT * FROM urls WHERE id = %s", (id,))
             url = cur.fetchone()
 
             if not url:
                 return render_template("404.html"), 404
 
-    return render_template("show.html", url=url, checks=[])
+            # Получаем все проверки для этого сайта
+            cur.execute(
+                """
+                SELECT id, status_code, h1, title, description, created_at
+                FROM url_checks
+                WHERE url_id = %s
+                ORDER BY id DESC
+                """,
+                (id,)
+            )
+            checks = cur.fetchall()
+
+    return render_template("show.html", url=url, checks=checks)
+
+
+@app.route("/urls/<int:id>/checks", methods=["POST"])
+def checks_create(id):
+    """Запускает проверку сайта (только создаёт запись)"""
+    try:
+        with get_connection() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                # Проверяем, существует ли сайт
+                cur.execute("SELECT id FROM urls WHERE id = %s", (id,))
+                url = cur.fetchone()
+                
+                if not url:
+                    flash("Сайт не найден", "danger")
+                    return redirect(url_for("urls_index"))
+                
+                # Создаём новую проверку (только базовые поля)
+                cur.execute(
+                    """
+                    INSERT INTO url_checks (url_id, created_at)
+                    VALUES (%s, %s)
+                    RETURNING id
+                    """,
+                    (id, date.today())
+                )
+                check_id = cur.fetchone()["id"]
+                
+                flash("Страница успешно проверена", "success")
+                
+    except Exception as e:
+        flash(f"Произошла ошибка при проверке: {str(e)}", "danger")
+    
+    return redirect(url_for("urls_show", id=id))
