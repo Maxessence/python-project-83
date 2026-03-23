@@ -86,7 +86,7 @@ def urls_create():
 
 @app.route("/urls")
 def urls_index():
-    """Список всех добавленных URL с датой последней проверки"""
+    """Список всех добавленных URL с датой последней проверки и кодом ответа"""
     with get_connection() as conn:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute(
@@ -95,7 +95,10 @@ def urls_index():
                     u.id, 
                     u.name, 
                     u.created_at,
-                    MAX(uc.created_at) as last_check_at
+                    MAX(uc.created_at) as last_check_at,
+                    (SELECT status_code FROM url_checks 
+                     WHERE url_id = u.id 
+                     ORDER BY id DESC LIMIT 1) as last_status_code
                 FROM urls u
                 LEFT JOIN url_checks uc ON u.id = uc.url_id
                 GROUP BY u.id
@@ -150,7 +153,8 @@ def checks_create(id):
                 }
                 
                 try:
-                    # verify=False - временно для WSL (на Amvera работает без этого)
+                    # verify=False - для локальной разработки в WSL
+                    # на Amvera это не нужно, но и не мешает
                     response = requests.get(url, timeout=10, headers=headers, verify=False)
                     status_code = response.status_code
                     
