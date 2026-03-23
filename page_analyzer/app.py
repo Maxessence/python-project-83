@@ -3,7 +3,9 @@ from datetime import date
 from urllib.parse import urlparse
 
 import psycopg2
+import requests
 import validators
+from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from flask import Flask, flash, redirect, render_template, request, url_for
 from psycopg2.extras import RealDictCursor
@@ -49,20 +51,17 @@ def urls_create():
     """Добавляет новый URL в базу данных"""
     url = request.form.get("url", "")
 
-    # Валидация
     errors = validate_url(url)
     if errors:
         for error in errors:
             flash(error, "danger")
         return render_template("index.html", url=url), 422
 
-    # Нормализация URL
     normalized_url = normalize_url(url)
 
     try:
         with get_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                # Проверяем, существует ли уже такой URL
                 cur.execute(
                     "SELECT id FROM urls WHERE name = %s", (normalized_url,)
                 )
@@ -72,7 +71,6 @@ def urls_create():
                     flash("Страница уже существует", "info")
                     return redirect(url_for("urls_show", id=existing["id"]))
 
-                # Добавляем новый URL
                 cur.execute(
                     "INSERT INTO urls (name, created_at) VALUES (%s, %s) RETURNING id",
                     (normalized_url, date.today()),
@@ -113,14 +111,12 @@ def urls_show(id):
     """Страница конкретного URL со списком проверок"""
     with get_connection() as conn:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            # Получаем информацию о сайте
             cur.execute("SELECT * FROM urls WHERE id = %s", (id,))
             url = cur.fetchone()
 
             if not url:
                 return render_template("404.html"), 404
 
-            # Получаем все проверки для этого сайта
             cur.execute(
                 """
                 SELECT id, status_code, h1, title, description, created_at
@@ -137,32 +133,57 @@ def urls_show(id):
 
 @app.route("/urls/<int:id>/checks", methods=["POST"])
 def checks_create(id):
-    """Запускает проверку сайта (только создаёт запись)"""
+    """Запускает реальную проверку сайта"""
     try:
         with get_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                # Проверяем, существует ли сайт
-                cur.execute("SELECT id FROM urls WHERE id = %s", (id,))
-                url = cur.fetchone()
+                cur.execute("SELECT name FROM urls WHERE id = %s", (id,))
+                url_data = cur.fetchone()
                 
-                if not url:
+                if not url_data:
                     flash("Сайт не найден", "danger")
                     return redirect(url_for("urls_index"))
                 
-                # Создаём новую проверку (только базовые поля)
-                cur.execute(
-                    """
-                    INSERT INTO url_checks (url_id, created_at)
-                    VALUES (%s, %s)
-                    RETURNING id
-                    """,
-                    (id, date.today())
-                )
-                check_id = cur.fetchone()["id"]
+                url = url_data["name"]
+                headers = {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                }
                 
-                flash("Страница успешно проверена", "success")
+                try:
+                    # verify=False - временно для WSL (на Amvera работает без этого)
+                    response = requests.get(url, timeout=10, headers=headers, verify=False)
+                    status_code = response.status_code
+                    
+                    if status_code < 400:
+                        soup = BeautifulSoup(response.text, 'html.parser')
+                        
+                        h1_tag = soup.find('h1')
+                        h1 = h1_tag.get_text()[:255] if h1_tag else ''
+                        
+                        title_tag = soup.find('title')
+                        title = title_tag.get_text()[:255] if title_tag else ''
+                        
+                        meta_tag = soup.find('meta', attrs={'name': 'description'})
+                        description = meta_tag.get('content', '')[:255] if meta_tag else ''
+                        
+                        cur.execute(
+                            """
+                            INSERT INTO url_checks 
+                            (url_id, status_code, h1, title, description, created_at)
+                            VALUES (%s, %s, %s, %s, %s, %s)
+                            """,
+                            (id, status_code, h1, title, description, date.today())
+                        )
+                        flash("Страница успешно проверена", "success")
+                    else:
+                        flash("Произошла ошибка при проверке", "danger")
+                        return redirect(url_for("urls_show", id=id))
+                    
+                except requests.exceptions.RequestException:
+                    flash("Произошла ошибка при проверке", "danger")
+                    return redirect(url_for("urls_show", id=id))
                 
-    except Exception as e:
-        flash(f"Произошла ошибка при проверке: {str(e)}", "danger")
+    except Exception:
+        flash("Произошла ошибка при проверке", "danger")
     
     return redirect(url_for("urls_show", id=id))
