@@ -28,29 +28,29 @@
 
 <table class="table table-bordered" data-test="checks">
     <thead>
-        <tr>
+         <tr>
             <th>ID</th>
             <th>Код ответа</th>
             <th>h1</th>
             <th>title</th>
             <th>description</th>
             <th>Дата создания</th>
-        </tr>
+         </tr>
     </thead>
     <tbody>
         {% for check in checks %}
-        <tr>
+         <tr>
             <td>{{ check.id }}</td>
             <td>{{ check.status_code or '' }}</td>
             <td>{{ (check.h1 or '')[:200] }}{% if (check.h1 or '')|length > 200 %}...{% endif %}</td>
             <td>{{ (check.title or '')[:200] }}{% if (check.title or '')|length > 200 %}...{% endif %}</td>
             <td>{{ (check.description or '')[:200] }}{% if (check.description or '')|length > 200 %}...{% endif %}</td>
             <td>{{ check.created_at }}</td>
-        </tr>
+         </tr>
         {% else %}
-        <tr>
+         <tr>
             <td colspan="6" class="text-center">Проверок пока нет</td>
-        </tr>
+         </tr>
         {% endfor %}
     </tbody>
 </table>

@@ -4,11 +4,15 @@ from urllib.parse import urlparse
 
 import psycopg2
 import requests
+import urllib3
 import validators
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from flask import Flask, flash, redirect, render_template, request, url_for
 from psycopg2.extras import RealDictCursor
+
+# Отключаем предупреждения о небезопасных HTTPS запросах (только для локальной разработки)
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 load_dotenv()
 
@@ -153,8 +157,6 @@ def checks_create(id):
                 }
                 
                 try:
-                    # verify=False - для локальной разработки в WSL
-                    # на Amvera это не нужно, но и не мешает
                     response = requests.get(url, timeout=10, headers=headers, verify=False)
                     status_code = response.status_code
                     
