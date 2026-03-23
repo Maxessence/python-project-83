@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Сайты</h1>
+
+<table class="table table-bordered" data-test="urls">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Имя</th>
+            <th>Дата создания</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for url in urls %}
+        <tr>
+            <td>{{ url.id }}</td>
+            <td>
+                <a href="{{ url_for('urls_show', id=url.id) }}">
+                    {{ url.name }}
+                </a>
+            </td>
+            <td>{{ url.created_at }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
