@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <h1 class="display-4 text-center mb-4">Анализатор страниц</h1>
+        <p class="lead text-center mb-4">Бесплатно проверяйте сайты на SEO-пригодность</p>
+        
+        <form action="{{ url_for('urls_create') }}" method="post" class="mb-3">
+            <div class="input-group">
+                <input type="url" 
+                       name="url" 
+                       class="form-control form-control-lg" 
+                       placeholder="https://www.example.com"
+                       value="{{ url or '' }}"
+                       required>
+                <button type="submit" class="btn btn-primary btn-lg">Проверить</button>
+            </div>
+        </form>
+        
+        <div class="text-center text-muted mt-4">
+            <small>Введите URL сайта, чтобы получить анализ</small>
+        </div>
+    </div>
+</div>
+{% endblock %}
